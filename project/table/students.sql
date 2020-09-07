@@ -12,3 +12,6 @@ INSERT INTO students(NAME,CGPA) VALUES ('farha',7.80);
 INSERT INTO students(NAME,CGPA) VALUES ('fahmi',8.80);
 
 select * from students;
+
+UPDATE students SET cgpa = 9.25 WHERE student_id = 1 RETURNING *;
+
