@@ -33,4 +33,6 @@ SELECT ROUND(AVG(cgpa)) FROM students;
 SELECT ROUND(SUM(cgpa)) FROM students;
 
 SELECT NOW();
+SELECT EXTRACT(MONTH FROM NOW());
+
 
