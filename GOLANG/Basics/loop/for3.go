@@ -10,8 +10,4 @@ func main() {
 		}
 		fmt.Println()
 	}
-
-	for _, value := range 10 {
-		fmt.Println(value)
-	}
 }
