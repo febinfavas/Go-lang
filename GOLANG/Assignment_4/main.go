@@ -1,79 +1,135 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres" // using postgres sql
 )
 
-// Let's create our Car struct. This will contain information about a car
-
-// Car contains information about a single car
 type Car struct {
-	ID   int    `json:"CarID" binding:"required"`
-	Rate int    `json:"Car Rating"`
-	Car  string `json:"Car Name" binding:"required"`
+	ID    uint   `json:"id" gorm:"primary_key`
+	Name  string `json:"name"`
+	Model string `json:"model"`
 }
 
-// We'll create a list of Vehicles
-var cars = []Car{
-	Car{1, 0, "Nissan Magnite"},
-	Car{2, 0, "Kia Sonet"},
-	Car{3, 0, "Maruti Swift"},
-	Car{4, 0, "Hyundai Creta"},
-	Car{5, 0, "Tata Altroz"},
-	Car{6, 0, "Renault KWID"},
-	Car{7, 0, "Mahindra XUV300"},
+type CreateCarInput struct {
+	Name  string `json:"name" binding:"required"`
+	Model string `json:"model" binding:"required"`
+}
+type UpdateCarInput struct {
+	Name  string `json:"name"`
+	Model string `json:"model"`
+}
+
+func SetupModels() *gorm.DB {
+
+	user := "postgres"
+	password := "8151"
+	dbname := "golang"
+	host := "127.0.0.1"
+	port := "5432"
+
+	prosgret_conname := fmt.Sprintf("host=%v port=%v user=%v dbname=%v password=%v sslmode=disable", host, port, user, dbname, password)
+
+	fmt.Println("conname is\t\t", prosgret_conname)
+	db, err := gorm.Open("postgres", prosgret_conname)
+	if err != nil {
+		panic("Failed to connect to database!")
+	}
+	db.AutoMigrate(&Car{})
+
+	return db
+}
+
+// GET /cars
+// Get all cars
+func FindCars(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	var cars []Car
+	db.Find(&cars)
+	c.JSON(http.StatusOK, gin.H{"data": cars})
+}
+
+// POST /cars
+// Create new cars
+func CreateCar(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	// Validate input
+	var input CreateCarInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// Create Car
+	car := Car{Name: input.Name, Model: input.Model}
+	db.Create(&car)
+	c.JSON(http.StatusOK, gin.H{"data": car})
+}
+
+// GET /cars/:id
+// Find a car
+func FindCar(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	// Get model if exist
+	var car Car
+	if err := db.Where("id = ?", c.Param("id")).First(&car).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": car})
+}
+
+// PATCH /cars/:id
+// Update a car
+func UpdateCar(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	// Get model if exist
+	var car Car
+	if err := db.Where("id = ?", c.Param("id")).First(&car).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
+		return
+	}
+	// Validate input
+	var input UpdateCarInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.Model(&car).Updates(input)
+	c.JSON(http.StatusOK, gin.H{"data": car})
+}
+
+// DELETE /cars/:id
+// Delete a car
+func DeleteCar(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	// Get model if exist
+	var car Car
+	if err := db.Where("id = ?", c.Param("id")).First(&car).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
+		return
+	}
+	db.Delete(&car)
+	c.JSON(http.StatusOK, gin.H{"data": true})
 }
 
 func main() {
-	// Set the router as the default one shipped with Gin
-	router := gin.Default()
-
-	// Serve frontend static files
-	router.Use(static.Serve("/", static.LocalFile("./views", true)))
-	// Setup route group for the API
-	api := router.Group("/api")
-	{
-		api.GET("/", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "pong",
-			})
-		})
-	}
-	// Our API will consit of just two routes
-	// /cars - which will retrieve a list of cars a user can see
-	// /cars/rate/:carID - which will capture rating sent to a particular car
-	api.GET("/cars", CarHandler)
-	api.POST("/cars/rate/:carID", CarRating)
-
-	// Start and run the server
-	router.Run(":8000")
-}
-
-// CarHandler retrieves a list of available cars
-func CarHandler(c *gin.Context) {
-	c.Header("Content-Type", "application/json")
-	c.JSON(http.StatusOK, cars)
-}
-
-// carModel gives the year of particular car
-func CarRating(c *gin.Context) {
-	// confirm Joke ID sent is valid
-	if carid, err := strconv.Atoi(c.Param("carID")); err == nil {
-		// find car, and increment rating
-		for i := 0; i < len(cars); i++ {
-			if cars[i].ID == carid {
-				cars[i].Rate += 1
-			}
-		}
-
-		// return a pointer to the updated cars list
-		c.JSON(http.StatusOK, &cars)
-	} else {
-		// Car ID is invalid
-		c.AbortWithStatus(http.StatusNotFound)
-	}
+	r := gin.Default()
+	db := SetupModels() // new
+	// Provide db variable to controllers
+	r.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Next()
+	})
+	r.Use(static.Serve("/", static.LocalFile("./views", true)))
+	r.GET("/cars", FindCars)
+	r.POST("/cars", CreateCar)       // create
+	r.GET("/cars/:id", FindCar)      // find by id
+	r.PATCH("/cars/:id", UpdateCar)  // update by id
+	r.DELETE("/cars/:id", DeleteCar) // delete by id
+	r.Run(":8000")
 }
