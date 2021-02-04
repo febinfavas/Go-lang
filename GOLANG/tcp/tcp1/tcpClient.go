@@ -16,7 +16,8 @@ func main() {
 	}
 
 	CONNECT := arguments[1]
-	c, err := net.Dial("tcp", CONNECT)
+	fmt.Println("Starting Client on ", CONNECT)
+	conn, err := net.Dial("tcp", CONNECT)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -26,9 +27,9 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print(">> ")
 		text, _ := reader.ReadString('\n')
-		fmt.Fprintf(c, text+"\n")
+		fmt.Fprintf(conn, text+"\n")
 
-		message, _ := bufio.NewReader(c).ReadString('\n')
+		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("->: " + message)
 		if strings.TrimSpace(string(text)) == "STOP" {
 			fmt.Println("TCP client exiting...")
