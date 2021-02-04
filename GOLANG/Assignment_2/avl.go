@@ -90,6 +90,7 @@ func insertR(root *Node, data Key) (*Node, bool) {
 	case 0:
 		return root, true
 	case 1, -1:
+		Febin007
 		return root, false
 	}
 	return insertBalance(root, dir), true
