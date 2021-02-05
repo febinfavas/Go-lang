@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -43,8 +42,6 @@ func main() {
 		}
 
 		fmt.Print("-> ", string(netData))
-		t := time.Now()
-		myTime := t.Format(time.RFC3339) + "\n"
-		conn.Write([]byte(myTime))
+		conn.Write([]byte(netData))
 	}
 }
