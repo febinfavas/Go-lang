@@ -3,38 +3,64 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
 )
 
-func main() {
-	arguments := os.Args
-	if len(arguments) == 1 {
-		fmt.Println("Please provide host:port.")
-		return
-	}
-
-	CONNECT := arguments[1]
-	fmt.Println("Starting Client on ", CONNECT)
-	conn, err := net.Dial("tcp", CONNECT)
+func logFatal(err error) {
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
+}
 
+func main() {
+
+	connection, err := net.Dial("tcp", "localhost:9000")
+	logFatal(err)
+
+	fmt.Println("Starting Client on :9000")
+
+	defer connection.Close()
+
+	fmt.Println("Enter your name:")
+	reader := bufio.NewReader(os.Stdin)
+	username, err := reader.ReadString('\n')
+	logFatal(err)
+
+	username = strings.Trim(username, "\r\n")
+	welcomeMSg := fmt.Sprintf("Welcome %s ! write Below to send Messages :-.", username)
+	fmt.Println(welcomeMSg)
+
+	go Read(connection)
+	Write(connection, username)
+
+}
+
+func Read(connection net.Conn) {
+	for {
+		reader := bufio.NewReader(connection)
+		message, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(message)
+
+	}
+}
+
+func Write(connection net.Conn, username string) {
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print(">> ")
-		text, _ := reader.ReadString('\n')
-		fmt.Fprintf(conn, text+"\n")
-
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("->: " + message)
-
-		if strings.TrimSpace(string(text)) == "STOP" {
-			fmt.Println("TCP client exiting...")
-			return
+		message, err := reader.ReadString('\n')
+		if err != nil {
+			break
 		}
+
+		message = fmt.Sprintf("%s:-%s\n", username, strings.Trim(message, "\r\n"))
+		connection.Write([]byte(message))
+
 	}
 }
