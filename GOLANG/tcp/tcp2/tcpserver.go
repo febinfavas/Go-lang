@@ -9,12 +9,6 @@ import (
 	"strings"
 )
 
-func logFatal(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 var (
 	x = make(map[string]*list.List)
 )
@@ -27,7 +21,9 @@ var (
 
 func main() {
 	ln, err := net.Listen("tcp", ":9000")
-	logFatal(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println("Starting Server on :9000")
 
@@ -37,7 +33,9 @@ func main() {
 
 		for {
 			conn, err := ln.Accept()
-			logFatal(err)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			openConnection[conn] = true
 			newConnection <- conn
@@ -64,9 +62,9 @@ func Store(conn net.Conn) {
 	for {
 		reader := bufio.NewReader(conn)
 		usernameAndMessage, err := reader.ReadString('\n')
-		logFatal(err)
-
-		//fmt.Print(usernameAndMessage)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		parts := strings.Split(usernameAndMessage, ":-")
 		username := parts[0]
@@ -116,17 +114,15 @@ func Store(conn net.Conn) {
 func first(connection net.Conn, username string) {
 	first := x[username].Front().Value
 	first_msg := fmt.Sprintf("Fisrt Messaage:- %v", first)
-	// first_msg := []byte(fmt.Sprintf("%v", first.(interface{})))
 	connection.Write([]byte(first_msg))
 	fmt.Println("fisrt Functin Called", first)
 }
 
 func last(connection net.Conn, username string) {
-	first := x[username].Back().Value
-	first_msg := fmt.Sprintf("Last Messaage:- %v", first)
-	// first_msg := []byte(fmt.Sprintf("%v", first.(interface{})))
-	connection.Write([]byte(first_msg))
-	fmt.Println("Last Functin Called", first)
+	last := x[username].Back().Value
+	last_msg := fmt.Sprintf("Last Messaage:- %v", first)
+	connection.Write([]byte(last_msg))
+	fmt.Println("Last Functin Called", last)
 }
 
 func Dequeue(connection net.Conn, username string) {

@@ -9,16 +9,12 @@ import (
 	"strings"
 )
 
-func logFatal(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
 
 	connection, err := net.Dial("tcp", "localhost:9000")
-	logFatal(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println("Starting Client on :9000")
 
@@ -27,11 +23,12 @@ func main() {
 	fmt.Println("Enter your name:")
 	reader := bufio.NewReader(os.Stdin)
 	username, err := reader.ReadString('\n')
-	logFatal(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	username = strings.Trim(username, "\r\n")
-	welcomeMSg := fmt.Sprintf("Welcome %s ! write Below to send Messages :-.", username)
-	fmt.Println(welcomeMSg)
+	fmt.Printf("Welcome %s ! write Below to send Messages :-", username)
 
 	go Read(connection)
 	Write(connection, username)
