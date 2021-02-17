@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -117,7 +116,6 @@ func main() {
 		c.Set("db", db)
 		c.Next()
 	})
-	r.Use(static.Serve("/", static.LocalFile("./views", true)))
 	r.GET("/posts", FindPosts)
 	r.POST("/posts", CreatePost)       // create
 	r.GET("/posts/:id", FindPost)      // find by id
